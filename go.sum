@@ -1,0 +1,14 @@
+github.com/chewxy/math32 v1.11.1 h1:b7PGHlp8KjylDoU8RrcEsRuGZhJuz8haxnKfuMMRqy8=
+github.com/chewxy/math32 v1.11.1/go.mod h1:dOB2rcuFrCn6UHrze36WSLVPKtzPMRAQvBvUwkSsLqs=
+github.com/go-gl/mathgl v1.2.0 h1:v2eOj/y1B2afDxF6URV1qCYmo1KW08lAMtTbOn3KXCY=
+github.com/go-gl/mathgl v1.2.0/go.mod h1:pf9+b5J3LFP7iZ4XXaVzZrCle0Q/vNpB/vDe5+3ulRE=
+github.com/striter-no/softgo v0.0.0-20260615084446-03c8e5cb7524 h1:GfnyRoG1Dh8+sEL+/PHUzKWYs/PYAn2fhkMcf3cadBc=
+github.com/striter-no/softgo v0.0.0-20260615084446-03c8e5cb7524/go.mod h1:crUM9mtgedL4GiUyevhtwuxButqKyHjmY8LUH4CY19Q=
+github.com/striter-no/stg v0.0.0-20260614221801-579572073cfa h1:ZQvRC3nN+HoV8Gzfr9PKODmWijy/MSNzHJ4KENYzf0M=
+github.com/striter-no/stg v0.0.0-20260614221801-579572073cfa/go.mod h1:S2gACip2w2KlRiL9TN+hO0SwDcfRgx4xmER/3J94Fe8=
+github.com/ungerik/go3d v0.0.0-20251020194721-1bde1320d420 h1:Ziz6uKC//mt/aOs61IMzk+a7XyMzTaMcJBQFwUx2LXc=
+github.com/ungerik/go3d v0.0.0-20251020194721-1bde1320d420/go.mod h1:4OT7jWjZCxpaqXQHhYO54/UBbHpEuw0OCx8nIS8rvyI=
+golang.org/x/sys v0.46.0 h1:noSf2Fq6F8DBgS+LysIkx7rIExoNHJsxOAtPp4rthXw=
+golang.org/x/sys v0.46.0/go.mod h1:4GL1E5IUh+htKOUEOaiffhrAeqysfVGipDYzABqnCmw=
+golang.org/x/term v0.44.0 h1:0rLvDRCtNj0gZkyIXhCyOb2OAzEhLVqc4B+hrsBhrmc=
+golang.org/x/term v0.44.0/go.mod h1:7ze4MdzUzLXpSAoFP1H0bOI9aXDqveSvatT5vKcFh2Y=
