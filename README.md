@@ -4,7 +4,7 @@ Simple 3D Engine that utilises SoftGO for terminal 3D rendering and adds user-fr
 
 ## Usage
 
-Firstly install `libXfixes-devel` for HID on X11, than:
+Firstly install `libXfixes-devel` for HID on X11, then:
 
 ```sh
 go run ./examples/main.go

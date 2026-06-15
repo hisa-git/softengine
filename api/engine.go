@@ -220,6 +220,10 @@ func (e *Engine) DrawObjects() error {
 		hasDirShadow = true
 
 		for _, obj := range e.Objects {
+			if !obj.CastShadows {
+				continue
+			}
+
 			model := obj.GetModelMatrix()
 			ctx := &shaders.ShaderContext{
 				MVP: dirLightSpaceMatrix.Mul4(model),
@@ -245,6 +249,10 @@ func (e *Engine) DrawObjects() error {
 			hasSpotShadow = true
 
 			for _, obj := range e.Objects {
+				if !obj.CastShadows {
+					continue
+				}
+
 				model := obj.GetModelMatrix()
 				ctx := &shaders.ShaderContext{
 					MVP: spotLightSpaceMatrix.Mul4(model),
@@ -338,6 +346,7 @@ func (e *Engine) DrawObjects() error {
 			SpotShadowDepth:      e.SpotShadowFBO.DepthBuffer,
 			SpotShadowWidth:      e.SpotShadowFBO.Width,
 			SpotShadowHeight:     e.SpotShadowFBO.Height,
+			IsSkybox:             obj.IsSkybox,
 		}
 
 		(*e.VertShader).SetUniform("ctx", ctx)

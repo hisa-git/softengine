@@ -3,6 +3,7 @@ package main
 import (
 	"context"
 	"log"
+	"math/rand"
 
 	"github.com/striter-no/softengine/api"
 	"github.com/striter-no/softengine/api/shaders"
@@ -35,7 +36,7 @@ func main() {
 		vec3.T{0.0, -1.0, -0.2},
 		4.0, 1.0, 0.009, 0.00032, // attenuation
 		12.5, 17.5,
-		true,
+		false,
 	)
 	engine.NewSpotLight(spotlight)
 
@@ -44,7 +45,7 @@ func main() {
 		shaders.NewBaseVertexShader(),
 	)
 
-	engine.InitCamera(vec3.T{0, 0, 2}, 0.08, 100, 0.1, 2000, 90)
+	engine.InitCamera(vec3.T{0, 0, 2}, 0.08, 100, 0.1, 10000, 80)
 	engine.Camera.Locked = true
 
 	// Ambient
@@ -53,6 +54,13 @@ func main() {
 	if windID == -1 {
 		log.Fatal("Failed to load sound")
 	}
+
+	shotID := engine.SoundSystem.AddSpeaker("./assets/sounds/gunshot.mp3", 0, 16)
+	if shotID == -1 {
+		log.Fatal("Failed to load sound")
+	}
+
+	engine.SoundSystem.SetVolume(shotID, 3)
 
 	engine.SoundSystem.PlayID(windID)
 
@@ -71,7 +79,7 @@ func main() {
 		vec3.T{0, 0, 0},
 		vec3.T{0, 0, 0},
 		vec3.T{1, 1, 1},
-		grassMesh, grassTex, true,
+		grassMesh, grassTex, true, true,
 	)
 
 	if _, err = engine.AddObject(grassObj); err != nil {
@@ -85,7 +93,7 @@ func main() {
 		vec3.T{0, 100, 0},
 		vec3.T{0, 0, 0},
 		vec3.T{30, 30, 30},
-		monkey, onigiriTex, true,
+		monkey, onigiriTex, true, true,
 	)
 
 	if _, err = engine.AddObject(monkeyObj); err != nil {
@@ -94,24 +102,24 @@ func main() {
 
 	// Skybox
 
-	// skyboxTex, err := entity.NewModelImageTexture("./assets/textures/skybox.png")
-	// if err != nil {
-	// 	panic(err)
-	// }
+	skyboxTex, err := entity.NewModelImageTexture("./assets/textures/skybox.png")
+	if err != nil {
+		panic(err)
+	}
 
-	// skyboxMesh, err := assets.LoadOBJ("./assets/meshes/skybox.obj")
+	skyboxMesh, err := assets.LoadOBJ("./assets/meshes/skybox.obj")
 
-	// skyboxObj := entity.NewObject3D(
-	// 	vec3.T{0, 0, 0},
-	// 	vec3.T{0, 0, 0},
-	// 	vec3.T{1500, 1500, 1500},
-	// 	skyboxMesh, skyboxTex, false,
-	// )
+	skyboxObj := entity.NewObject3D(
+		vec3.T{0, 0, 0},
+		vec3.T{0, 0, 0},
+		vec3.T{10, 10, 10},
+		skyboxMesh, skyboxTex, false, false,
+	)
+	skyboxObj.IsSkybox = true
 
-	// var skyboxID int
-	// if _, err = engine.AddObject(skyboxObj); err != nil {
-	// 	panic(err)
-	// }
+	if _, err = engine.AddObject(skyboxObj); err != nil {
+		panic(err)
+	}
 
 	// Run
 	engine.RScreen.SSAAFactor = 1
@@ -121,17 +129,26 @@ func main() {
 		}
 
 		engine.UpdateHID()
-
-		engine.SoundSystem.ChangeIDPosition(windID, engine.Camera.Position)
 		engine.SoundSystem.UpdateListener(engine.Camera.Position)
 
-		// skyboxObj.Position = engine.Camera.Position
-		// skyboxObj.UpdateMat()
+		engine.SoundSystem.ChangeIDPosition(windID, engine.Camera.Position)
+
+		skyboxObj.Position = engine.Camera.Position
+		skyboxObj.UpdateMat()
 		// spotlight.Position = engine.Camera.Position
 
 		monkeyObj.LookAt(engine.Camera.Position, true)
 
 		engine.Camera.Speed = 200 * engine.TSystem.DeltaTime
+
+		if engine.TSystem.Ticks%50 == 0 {
+			engine.SoundSystem.ChangeIDPosition(shotID, vec3.T{
+				rand.Float32()*300 - 150,
+				50,
+				rand.Float32()*300 - 150,
+			})
+			engine.SoundSystem.PlayID(shotID)
+		}
 
 		if err := engine.DrawObjects(); err != nil {
 			panic(err)

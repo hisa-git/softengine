@@ -17,6 +17,7 @@ type ShaderContext struct {
 
 	Lights     lights.LightingConfig
 	IsStraight bool
+	IsSkybox   bool
 
 	// --- Directional Shadow ---
 	HasDirShadow        bool
