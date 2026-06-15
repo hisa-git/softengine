@@ -63,12 +63,18 @@ func fragShader(u float32, v float32, col vec4.T, norm vec3.T, fragPos vec3.T, s
 	if ctx.Texture != nil {
 		texColor = ctx.Texture.Sample(u, v)
 	} else {
-		texColor = ctx.Color
+		// texColor = ctx.Color
+		texColor = col
 	}
 
 	texR := texColor[0] / 255.0
 	texG := texColor[1] / 255.0
 	texB := texColor[2] / 255.0
+	alpha := texColor[3] / 255.0
+
+	if ctx.IsStraight {
+		return vec4.T{texR, texG, texB, alpha}
+	}
 
 	lenN := float32(math.Sqrt(float64(norm[0]*norm[0] + norm[1]*norm[1] + norm[2]*norm[2])))
 	if lenN > 0 {
@@ -179,7 +185,7 @@ func fragShader(u float32, v float32, col vec4.T, norm vec3.T, fragPos vec3.T, s
 		resultR,
 		resultG,
 		resultB,
-		1.0,
+		alpha,
 	}
 }
 

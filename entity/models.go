@@ -74,9 +74,10 @@ type Object3D struct {
 
 	isDirty     bool
 	modelMatrix mgl32.Mat4
+	CanBeLit    bool
 }
 
-func NewObject3D(position, rotation, scale vec3.T, mesh []render.TBO, texture ModelTexture) *Object3D {
+func NewObject3D(position, rotation, scale vec3.T, mesh []render.TBO, texture ModelTexture, canBeLit bool) *Object3D {
 	var maxSq float32
 	for _, tbo := range mesh {
 		v0Sq := tbo.V0[0]*tbo.V0[0] + tbo.V0[1]*tbo.V0[1] + tbo.V0[2]*tbo.V0[2]
@@ -106,6 +107,19 @@ func NewObject3D(position, rotation, scale vec3.T, mesh []render.TBO, texture Mo
 		BaseRadius:  baseRadius,
 		isDirty:     true,
 		modelMatrix: mgl32.Ident4(),
+		CanBeLit:    canBeLit,
+	}
+}
+
+func (o *Object3D) ChangeOmniDir(mode bool) {
+	for i := range o.Mesh {
+		o.Mesh[i].OmniDir = mode
+	}
+
+	for k := range o.LODs {
+		for i := range o.LODs[k].Mesh {
+			o.LODs[k].Mesh[i].OmniDir = mode
+		}
 	}
 }
 
@@ -114,6 +128,10 @@ func (o *Object3D) AddLOD(mesh []render.TBO, distance float32) {
 		Distance: distance,
 		Mesh:     mesh,
 	})
+}
+
+func (o *Object3D) UpdateMat() {
+	o.isDirty = true
 }
 
 func (o *Object3D) GetActiveMesh(distance float32) []render.TBO {
@@ -132,6 +150,7 @@ func (o *Object3D) GetActiveMesh(distance float32) []render.TBO {
 
 func (o *Object3D) Clone() *Object3D {
 	return &Object3D{
+		CanBeLit: o.CanBeLit,
 		LODs:     o.LODs,
 		Texture:  o.Texture,
 		Position: o.Position,

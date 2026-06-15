@@ -4,24 +4,27 @@ import (
 	"context"
 	"errors"
 	"fmt"
+	"sort"
 	"time"
 
 	"github.com/go-gl/mathgl/mgl32"
 	"github.com/striter-no/softengine/api/shaders"
 	"github.com/striter-no/softengine/entity"
 	"github.com/striter-no/softengine/lights"
+	"github.com/striter-no/softengine/sounds"
 	sapi "github.com/striter-no/softgo/api"
 	"github.com/striter-no/softgo/api/keyboard"
 	"github.com/striter-no/softgo/api/mouse"
+	"github.com/striter-no/softgo/render"
 	"github.com/striter-no/stg/graphics"
 	"github.com/ungerik/go3d/vec3"
 	"github.com/ungerik/go3d/vec4"
 )
 
 type Engine struct {
-	ctx         context.Context
-	winMouse    mouse.WindowMouse
-	winKeyboard keyboard.WindowKeyboard
+	ctx      context.Context
+	Mouse    mouse.WindowMouse
+	Keyboard keyboard.WindowKeyboard
 
 	Camera  *sapi.Camera
 	RScreen *sapi.RenderScreen
@@ -35,15 +38,19 @@ type Engine struct {
 
 	lastUpdate  time.Time
 	LightConfig lights.LightingConfig
+
+	MainFBO     *render.Framebuffer
+	SoundSystem *sounds.SoundSystem
 }
 
 func NewEngine(ctx context.Context) (*Engine, error) {
-	winMouse, err := mouse.NewWindowMouse()
+
+	Mouse, err := mouse.NewWindowMouse()
 	if err != nil {
 		return nil, err
 	}
 
-	winKeyboard, err := keyboard.NewWindowKeyboard()
+	Keyboard, err := keyboard.NewWindowKeyboard()
 	if err != nil {
 		return nil, err
 	}
@@ -53,29 +60,36 @@ func NewEngine(ctx context.Context) (*Engine, error) {
 		return nil, err
 	}
 
-	winMouse.LockCursor()
-	winMouse.HideMouse()
+	SoundSystem, err := sounds.NewSoundSystem(vec3.T{0, 0, 0})
+	if err != nil {
+		return nil, err
+	}
+
+	Mouse.LockCursor()
+	Mouse.HideMouse()
 
 	s.SSAAFactor = 1
 	s.Init()
 
 	return &Engine{
-		ctx:         ctx,
-		winMouse:    winMouse,
-		winKeyboard: winKeyboard,
-		Objects:     make(map[int]*entity.Object3D),
-		RScreen:     s,
-		FragShader:  &s.FragShader,
-		VertShader:  &s.VertexShader,
+		ctx:        ctx,
+		Mouse:      Mouse,
+		Keyboard:   Keyboard,
+		Objects:    make(map[int]*entity.Object3D),
+		RScreen:    s,
+		FragShader: &s.FragShader,
+		VertShader: &s.VertexShader,
 		LightConfig: lights.LightingConfig{
 			PointLights: make(map[int]*lights.PointLight),
 			SpotLights:  make(map[int]*lights.SpotLight),
 		},
+		MainFBO:     render.NewFramebuffer(s.Screen.Width*s.SSAAFactor, s.Screen.Height*s.SSAAFactor, false),
+		SoundSystem: SoundSystem,
 	}, nil
 }
 
-func (e *Engine) InitCamera(position vec3.T, sensitivity, speed float32) {
-	e.Camera = sapi.NewCamera(position, sensitivity, speed, e.winMouse, e.winKeyboard)
+func (e *Engine) InitCamera(position vec3.T, sensitivity, speed, near, far, fov float32) {
+	e.Camera = sapi.NewCamera(position, sensitivity, speed, e.Mouse, e.Keyboard, near, far, fov)
 }
 
 func (e *Engine) AddObject(obj *entity.Object3D) (int, error) {
@@ -109,8 +123,8 @@ func (e *Engine) IsRunning() bool {
 func (e *Engine) UpdateHID() {
 	e.lastUpdate = time.Now()
 
-	e.winMouse.PollEvents()
-	e.winKeyboard.PollEvents()
+	e.Mouse.PollEvents()
+	e.Keyboard.PollEvents()
 
 	if e.RScreen.Screen.Height == 0 {
 		return
@@ -152,6 +166,21 @@ func (e *Engine) RemoveSpotLigth(id int) {
 
 func (e *Engine) DrawObjects() error {
 	e.RScreen.Clear()
+	if e.MainFBO.Width != e.RScreen.Screen.Width*e.RScreen.SSAAFactor ||
+		e.MainFBO.Height != e.RScreen.Screen.Height*e.RScreen.SSAAFactor {
+
+		e.MainFBO = render.NewFramebuffer(e.RScreen.Screen.Width*e.RScreen.SSAAFactor, e.RScreen.Screen.Height*e.RScreen.SSAAFactor, false)
+	}
+
+	e.MainFBO.Clear(e.RScreen.BackColor)
+
+	type RenderNode struct {
+		Obj              *entity.Object3D
+		DistanceToCamera float32
+		MVP              mgl32.Mat4
+	}
+
+	var renderQueue []RenderNode
 
 	for _, obj := range e.Objects {
 		model := obj.GetModelMatrix()
@@ -179,7 +208,6 @@ func (e *Engine) DrawObjects() error {
 			ndcY := clipCenter.Y() / clipCenter.W()
 			ndcZ := clipCenter.Z() / clipCenter.W()
 
-			// for invisible hiding coof. x1.5
 			bound := 1.5 * (1.0 + (actualRadius / clipCenter.W()))
 			zbound := (1.0 + (actualRadius / clipCenter.W()))
 
@@ -188,23 +216,36 @@ func (e *Engine) DrawObjects() error {
 			}
 		}
 
-		distanceToCamera := clipCenter.W()
-		activeMesh := obj.GetActiveMesh(distanceToCamera)
+		renderQueue = append(renderQueue, RenderNode{
+			Obj:              obj,
+			DistanceToCamera: clipCenter.W(),
+			MVP:              mvp,
+		})
+	}
+
+	sort.Slice(renderQueue, func(i, j int) bool {
+		return renderQueue[i].DistanceToCamera > renderQueue[j].DistanceToCamera
+	})
+
+	for _, node := range renderQueue {
+		obj := node.Obj
+		activeMesh := obj.GetActiveMesh(node.DistanceToCamera)
 
 		ctx := &shaders.ShaderContext{
-			MVP:     mvp,
-			Model:   model,
+			MVP:     node.MVP,
+			Model:   obj.GetModelMatrix(),
 			ViewPos: e.Camera.Position,
 
 			Texture: obj.Texture.Texture,
 			Color:   vec4.T{obj.Texture.BaseColor[0], obj.Texture.BaseColor[1], obj.Texture.BaseColor[2], 1},
 
-			Lights: e.LightConfig,
+			Lights:     e.LightConfig,
+			IsStraight: !obj.CanBeLit,
 		}
 
 		(*e.VertShader).SetUniform("ctx", ctx)
 		(*e.FragShader).SetUniform("ctx", ctx)
-		if err := e.RScreen.DrawCall(activeMesh); err != nil {
+		if err := e.RScreen.DrawCall(activeMesh, e.MainFBO); err != nil {
 			return err
 		}
 	}
@@ -214,7 +255,7 @@ func (e *Engine) DrawObjects() error {
 
 func (e *Engine) Blit() {
 
-	e.RScreen.Present()
+	e.RScreen.Present(e.MainFBO)
 
 	e.RScreen.Screen.SetText(
 		0, 0, fmt.Sprintf("FPS: %.1f", e.RScreen.CurrentFPS), graphics.NewFGPixel(255, 255, 255, ""),
@@ -227,10 +268,13 @@ func (e *Engine) Blit() {
 }
 
 func (e *Engine) End() {
-	e.winMouse.UnlockCursor()
-	e.winMouse.ShowMouse()
-	e.winMouse.Close()
 
-	e.winKeyboard.Close()
+	e.Mouse.UnlockCursor()
+	e.Mouse.ShowMouse()
+	e.Mouse.Close()
+
+	e.Keyboard.Close()
 	e.RScreen.End()
+
+	e.SoundSystem.End()
 }

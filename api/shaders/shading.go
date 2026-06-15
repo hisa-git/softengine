@@ -15,5 +15,6 @@ type ShaderContext struct {
 	Color   vec4.T
 	ViewPos vec3.T
 
-	Lights lights.LightingConfig
+	Lights     lights.LightingConfig
+	IsStraight bool
 }
