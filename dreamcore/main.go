@@ -25,9 +25,19 @@ func main() {
 	engine.RScreen.BackColor = vec3.T{0.8, 0.8, 1}
 	engine.LightConfig.Ambient = lights.AmbientLight{Color: vec3.T{0.1, 0.1, 0.1}}
 	engine.LightConfig.Directional = lights.DirectLight{
-		Color:     vec3.T{.8, 0.9, 1},
-		Direction: vec3.T{-0.7, -1.0, -0.2},
+		Color:       vec3.T{.8, 0.9, 1},
+		Direction:   vec3.T{-0.2, -.5, -0.2},
+		CastShadows: true,
 	}
+	spotlight := lights.NewSpotLight(
+		vec3.T{1.0, .0, 1.0},
+		vec3.T{0.0, 150.0, 0.0},
+		vec3.T{0.0, -1.0, -0.2},
+		4.0, 1.0, 0.009, 0.00032, // attenuation
+		12.5, 17.5,
+		true,
+	)
+	engine.NewSpotLight(spotlight)
 
 	engine.UpdateShaders(
 		shaders.NewBaseFragmentShader(),
@@ -54,8 +64,8 @@ func main() {
 	}
 
 	// grassMesh, err := assets.LoadOBJ("./assets/meshes/plane.obj")
-	generator := entity.NewTerrainGenerator(50.0, 0.3, 50)
-	grassMesh := generator.Generate(20, 20)
+	generator := entity.NewTerrainGenerator(100.0, 0.2, 50)
+	grassMesh := generator.Generate(150, 150)
 
 	grassObj := entity.NewObject3D(
 		vec3.T{0, 0, 0},
@@ -84,26 +94,27 @@ func main() {
 
 	// Skybox
 
-	skyboxTex, err := entity.NewModelImageTexture("./assets/textures/skybox.png")
-	if err != nil {
-		panic(err)
-	}
+	// skyboxTex, err := entity.NewModelImageTexture("./assets/textures/skybox.png")
+	// if err != nil {
+	// 	panic(err)
+	// }
 
-	skyboxMesh, err := assets.LoadOBJ("./assets/meshes/skybox.obj")
+	// skyboxMesh, err := assets.LoadOBJ("./assets/meshes/skybox.obj")
 
-	skyboxObj := entity.NewObject3D(
-		vec3.T{0, 0, 0},
-		vec3.T{0, 0, 0},
-		vec3.T{1500, 1500, 1500},
-		skyboxMesh, skyboxTex, false,
-	)
+	// skyboxObj := entity.NewObject3D(
+	// 	vec3.T{0, 0, 0},
+	// 	vec3.T{0, 0, 0},
+	// 	vec3.T{1500, 1500, 1500},
+	// 	skyboxMesh, skyboxTex, false,
+	// )
 
 	// var skyboxID int
-	if _, err = engine.AddObject(skyboxObj); err != nil {
-		panic(err)
-	}
+	// if _, err = engine.AddObject(skyboxObj); err != nil {
+	// 	panic(err)
+	// }
 
 	// Run
+	engine.RScreen.SSAAFactor = 1
 	for engine.IsRunning() {
 		if engine.Keyboard.IsKeyPressed(keyboard.KeyEsc) {
 			break
@@ -114,12 +125,13 @@ func main() {
 		engine.SoundSystem.ChangeIDPosition(windID, engine.Camera.Position)
 		engine.SoundSystem.UpdateListener(engine.Camera.Position)
 
-		skyboxObj.Position = engine.Camera.Position
-		skyboxObj.UpdateMat()
+		// skyboxObj.Position = engine.Camera.Position
+		// skyboxObj.UpdateMat()
+		// spotlight.Position = engine.Camera.Position
 
 		monkeyObj.LookAt(engine.Camera.Position, true)
 
-		engine.Camera.Speed = 100 * engine.TSystem.DeltaTime
+		engine.Camera.Speed = 200 * engine.TSystem.DeltaTime
 
 		if err := engine.DrawObjects(); err != nil {
 			panic(err)

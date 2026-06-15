@@ -17,4 +17,18 @@ type ShaderContext struct {
 
 	Lights     lights.LightingConfig
 	IsStraight bool
+
+	// --- Directional Shadow ---
+	HasDirShadow        bool
+	DirLightSpaceMatrix mgl32.Mat4
+	DirShadowDepth      []float32
+	DirShadowWidth      int
+	DirShadowHeight     int
+
+	// --- Spot Shadow ---
+	HasSpotShadow        bool
+	SpotLightSpaceMatrix mgl32.Mat4
+	SpotShadowDepth      []float32
+	SpotShadowWidth      int
+	SpotShadowHeight     int
 }
